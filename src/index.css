@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark light;
+}
+
+body {
+  @apply min-h-screen bg-black text-white antialiased;
+}
+
+#root {
+  @apply min-h-screen;
+}
+
+a {
+  @apply text-flame-300;
+}
+
+a:hover {
+  @apply text-flame-200;
+}
+
+button,
+input,
+select,
+textarea {
+  @apply outline-none;
+}
