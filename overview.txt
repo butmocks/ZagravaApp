@@ -1,0 +1,580 @@
+// Zagrava — React starter (v1) with debug logs injected
+// Minimal, production-ready skeleton using Vite + React + Tailwind.
+// Features: routing, i18n, theme, consent toggles, card engine, local JSON.
+
+// 1) package.json (use: npm create vite@latest zagrava -- --template react)
+// Then replace/add deps below
+/*
+{
+  "name": "zagrava",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "zustand": "^4.5.5",
+    "i18next": "^24.0.0",
+    "react-i18next": "^14.0.1",
+    "clsx": "^2.1.1"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0",
+    "tailwindcss": "^3.4.10",
+    "postcss": "^8.4.47",
+    "autoprefixer": "^10.4.20"
+  }
+}
+*/
+
+// 2) tailwind.config.js
+/*
+export default {
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
+  theme: {
+    extend: {
+      colors: {
+        flame: {
+          50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74',
+          400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c',
+          800: '#9a3412', 900: '#7c2d12'
+        }
+      }
+    }
+  },
+  plugins: []
+}
+*/
+
+// 3) src/main.jsx
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import App from './App'
+import './index.css'
+
+console.log('[main] Initializing React root')
+
+createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+)
+
+// 4) src/index.css
+/* Tailwind base
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark light; }
+body { @apply bg-black text-white; }
+*/
+
+// 5) src/i18n.js
+import i18n from 'i18next'
+import { initReactI18next } from 'react-i18next'
+
+console.log('[i18n] Initializing i18n')
+
+const resources = {
+  ua: {
+    translation: {
+      appName: 'Заграва',
+      play: 'Грати',
+      settings: 'Налаштування',
+      levels: { easy: 'Легко', medium: 'Середньо', hard: 'Складно', extreme: 'Екстрим' },
+      categories: { action: 'Дія', question: 'Питання', game: 'Гра' },
+      consent: 'Згода обовʼязкова',
+      next: 'Далі',
+      shuffle: 'Перемішати',
+      start: 'Старт'
+    }
+  },
+  en: {
+    translation: {
+      appName: 'Zagrava',
+      play: 'Play',
+      settings: 'Settings',
+      levels: { easy: 'Easy', medium: 'Medium', hard: 'Hard', extreme: 'Extreme' },
+      categories: { action: 'Action', question: 'Question', game: 'Game' },
+      consent: 'Consent required',
+      next: 'Next',
+      shuffle: 'Shuffle',
+      start: 'Start'
+    }
+  }
+}
+
+i18n
+  .use(initReactI18next)
+  .init({
+    resources,
+    lng: 'ua',
+    fallbackLng: 'ua',
+    interpolation: { escapeValue: false }
+  })
+
+export default i18n
+
+// 6) src/store.js — filters/settings + auth state
+import { create } from 'zustand'
+
+console.log('[store] Zustand store created')
+
+export const useZStore = create((set) => ({
+  lang: 'ua',
+  theme: 'dark',
+  auth: { isAuthed: false, method: 'pin' },
+  filters: {
+    levels: new Set(['easy', 'medium', 'hard', 'extreme']),
+    categories: new Set(['action', 'question', 'game']),
+    moods: new Set(['romantic', 'playful', 'passionate', 'deep']),
+    consentOnly: false
+  },
+  toggleLevel: (lv) =>
+    set((s) => {
+      console.log('[store] toggleLevel', lv)
+      const n = new Set(s.filters.levels)
+      n.has(lv) ? n.delete(lv) : n.add(lv)
+      return { filters: { ...s.filters, levels: n } }
+    }),
+  toggleCategory: (c) =>
+    set((s) => {
+      console.log('[store] toggleCategory', c)
+      const n = new Set(s.filters.categories)
+      n.has(c) ? n.delete(c) : n.add(c)
+      return { filters: { ...s.filters, categories: n } }
+    }),
+  toggleMood: (m) =>
+    set((s) => {
+      console.log('[store] toggleMood', m)
+      const n = new Set(s.filters.moods)
+      n.has(m) ? n.delete(m) : n.add(m)
+      return { filters: { ...s.filters, moods: n } }
+    }),
+  toggleConsentOnly: () =>
+    set((s) => {
+      console.log('[store] toggleConsentOnly')
+      return { filters: { ...s.filters, consentOnly: !s.filters.consentOnly } }
+    }),
+  setLang: (lang) => {
+    console.log('[store] setLang', lang)
+    set({ lang })
+  },
+  login: (pin) =>
+    set(() => {
+      console.log('[store] login attempt', pin)
+      const ok = typeof pin === 'string' && pin.length >= 4
+      if (ok) localStorage.setItem('zagrava_pin', pin)
+      return { auth: { isAuthed: ok, method: 'pin' } }
+    }),
+  logout: () =>
+    set(() => {
+      console.log('[store] logout')
+      localStorage.removeItem('zagrava_pin')
+      return { auth: { isAuthed: false, method: 'pin' } }
+    }),
+  bootstrapAuth: () =>
+    set(() => {
+      const saved = localStorage.getItem('zagrava_pin')
+      console.log('[store] bootstrapAuth, saved=', saved)
+      return { auth: { isAuthed: !!saved, method: 'pin' } }
+    })
+}))
+
+// 7) src/lib/loadDb.js — load local JSON
+export async function loadDb() {
+  console.log('[loadDb] Fetching zagrava_db_v1.json')
+  const res = await fetch('/zagrava_db_v1.json')
+  const json = await res.json()
+  console.log('[loadDb] Loaded items:', json.items?.length)
+  return json.items || []
+}
+
+// 8) src/App.jsx — routes & layout with Auth + ProtectedRoute
+import { Suspense, useEffect, useState } from 'react'
+import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom'
+import './i18n'
+import { useZStore } from './store'
+import { loadDb } from './lib/loadDb'
+
+function Shell({ children }) {
+  const { lang } = useZStore()
+
+  useEffect(() => {
+    console.log('[Shell] lang changed:', lang)
+    document.documentElement.lang = lang
+  }, [lang])
+
+  console.log('[Shell] render')
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black">
+      <header className="sticky top-0 z-10 backdrop-blur bg-black/30 border-b border-white/10">
+        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between">
+          <Link to="/" className="text-2xl font-semibold text-flame-400">
+            Заграва
+          </Link>
+          <nav className="flex gap-4 text-sm">
+            <Link to="/play" className="hover:text-flame-300">
+              Грати
+            </Link>
+            <Link to="/settings" className="hover:text-flame-300">
+              Налаштування
+            </Link>
+          </nav>
+        </div>
+      </header>
+      <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
+    </div>
+  )
+}
+
+function Home() {
+  const navigate = useNavigate()
+  console.log('[Home] render')
+
+  return (
+    <div className="grid gap-6">
+      <h1 className="text-4xl font-bold">Вітаємо у Заграві</h1>
+      <p className="text-zinc-300">Ігрові картки для близькості, довіри й пристрасті.</p>
+      <div className="flex gap-3">
+        <button
+          onClick={() => {
+            console.log('[Home] navigate to /play')
+            navigate('/play')
+          }}
+          className="px-5 py-3 rounded-2xl bg-flame-600 hover:bg-flame-500 active:bg-flame-700 transition"
+        >
+          Почати
+        </button>
+        <Link
+          to="/auth"
+          onClick={() => console.log('[Home] navigate to /auth')}
+          className="px-5 py-3 rounded-2xl bg-zinc-800 border border-white/10 hover:bg-zinc-700"
+        >
+          Доступ
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function Settings() {
+  const s = useZStore()
+  console.log('[Settings] render')
+
+  const Row = ({ label, children }) => (
+    <div className="flex items-center justify-between py-2 border-b border-white/10">
+      <span className="text-zinc-300">{label}</span>
+      {children}
+    </div>
+  )
+
+  return (
+    <div className="grid gap-4">
+      <h2 className="text-2xl font-semibold">Налаштування</h2>
+
+      <Row label="Мова">
+        <select
+          value={s.lang}
+          onChange={(e) => {
+            console.log('[Settings] setLang', e.target.value)
+            s.setLang(e.target.value)
+          }}
+          className="bg-zinc-800 rounded-xl px-3 py-2"
+        >
+          <option value="ua">Українська</option>
+          <option value="en">English</option>
+        </select>
+      </Row>
+
+      <Row label="Тільки згодні до дій (18+)">
+        <input
+          type="checkbox"
+          checked={s.filters.consentOnly}
+          onChange={() => {
+            console.log('[Settings] toggleConsentOnly')
+            s.toggleConsentOnly()
+          }}
+        />
+      </Row>
+
+      <div className="grid grid-cols-2 gap-2">
+        {['easy', 'medium', 'hard', 'extreme'].map((lv) => (
+          <button
+            key={lv}
+            onClick={() => {
+              console.log('[Settings] toggleLevel', lv)
+              s.toggleLevel(lv)
+            }}
+            className={`px-3 py-2 rounded-xl border ${
+              s.filters.levels.has(lv)
+                ? 'bg-flame-600 border-flame-500'
+                : 'bg-zinc-900 border-white/10'
+            }`}
+          >
+            {lv}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {['action', 'question', 'game'].map((ct) => (
+          <button
+            key={ct}
+            onClick={() => {
+              console.log('[Settings] toggleCategory', ct)
+              s.toggleCategory(ct)
+            }}
+            className={`px-3 py-2 rounded-xl border ${
+              s.filters.categories.has(ct)
+                ? 'bg-flame-600 border-flame-500'
+                : 'bg-zinc-900 border-white/10'
+            }`}
+          >
+            {ct}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        {['romantic', 'playful', 'passionate', 'deep'].map((m) => (
+          <button
+            key={m}
+            onClick={() => {
+              console.log('[Settings] toggleMood', m)
+              s.toggleMood(m)
+            }}
+            className={`px-3 py-2 rounded-xl border ${
+              s.filters.moods.has(m)
+                ? 'bg-flame-600 border-flame-500'
+                : 'bg-zinc-900 border-white/10'
+            }`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
+      <div className="pt-2">
+        <button
+          onClick={() => {
+            console.log('[Settings] logout (clear access)')
+            s.logout()
+          }}
+          className="text-sm text-zinc-400 hover:text-white"
+        >
+          Очистити доступ (вийти)
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Card({ card, onNext }) {
+  const title = card.title_ua
+  const desc = card.description_ua
+  console.log('[Card] render', card.id)
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-zinc-900/60 p-6 shadow-xl">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-400">
+        <span className="px-2 py-1 rounded-full bg-black/40 border border-white/10">{card.category}</span>
+        <span className="px-2 py-1 rounded-full bg-black/40 border border-white/10">{card.level}</span>
+        <span className="px-2 py-1 rounded-full bg-black/40 border border-white/10">{card.mood}</span>
+      </div>
+      <h3 className="text-2xl font-bold mt-3 text-flame-300">{title}</h3>
+      {card.consent_required && (
+        <p className="mt-2 text-sm text-rose-300">
+          ⚠️ Памʼятайте: дія виконується лише за взаємної згоди.
+        </p>
+      )}
+      <p className="mt-4 text-lg leading-relaxed text-zinc-200">{desc}</p>
+      {card.tags?.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {card.tags.map((t) => (
+            <span
+              key={t}
+              className="text-xs px-2 py-1 rounded-full bg-black/40 border border-white/10"
+            >
+              #{t}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={() => {
+            console.log('[Card] next card')
+            onNext()
+          }}
+          className="px-4 py-2 rounded-xl bg-flame-600 hover:bg-flame-500"
+        >
+          Далі
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Play() {
+  const s = useZStore()
+  const [cards, setCards] = useState([])
+  const [i, setI] = useState(0)
+
+  useEffect(() => {
+    console.log('[Play] bootstrapAuth')
+    s.bootstrapAuth()
+  }, [])
+
+  useEffect(() => {
+    console.log('[Play] loading DB with filters', s.filters)
+    ;(async () => {
+      const all = await loadDb()
+      const filtered = filterCards(all, s.filters)
+      console.log('[Play] cards after filter:', filtered.length)
+      setCards(shuffle(filtered))
+    })()
+  }, [s.filters])
+
+  if (!s.auth.isAuthed) {
+    console.log('[Play] not authed, redirect to /auth')
+    return <Navigate to="/auth" replace />
+  }
+
+  if (cards.length === 0) {
+    return <p className="text-zinc-400">Завантаження карток… або фільтр занадто вузький.</p>
+  }
+
+  const card = cards[i % cards.length]
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex justify-between items-center">
+        <button
+          onClick={() => {
+            console.log('[Play] reshuffle cards')
+            setCards(shuffle([...cards]))
+          }}
+          className="text-sm text-zinc-400 hover:text-white"
+        >
+          Перемішати
+        </button>
+        <div className="text-sm text-zinc-400">
+          {i + 1}/{cards.length}
+        </div>
+      </div>
+      <Card
+        card={card}
+        onNext={() => {
+          console.log('[Play] increment index', i + 1)
+          setI(i + 1)
+        }}
+      />
+    </div>
+  )
+}
+
+function shuffle(arr) {
+  console.log('[shuffle] length before', arr.length)
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  console.log('[shuffle] done')
+  return arr
+}
+
+function filterCards(all, filters) {
+  const result = all.filter(
+    (c) =>
+      filters.levels.has(c.level) &&
+      filters.categories.has(c.category) &&
+      filters.moods.has(c.mood) &&
+      (!filters.consentOnly || c.consent_required === true)
+  )
+  console.log('[filterCards] input:', all.length, 'output:', result.length)
+  return result
+}
+
+function Auth() {
+  const s = useZStore()
+  const nav = useNavigate()
+  const [pin, setPin] = useState('')
+
+  useEffect(() => {
+    console.log('[Auth] bootstrapAuth')
+    s.bootstrapAuth()
+    if (s.auth.isAuthed) {
+      console.log('[Auth] already authed, redirect to /play')
+      nav('/play')
+    }
+  }, [])
+
+  const submit = (e) => {
+    e.preventDefault()
+    console.log('[Auth] submit pin')
+    s.login(pin)
+    if (pin && pin.length >= 4) {
+      console.log('[Auth] pin ok, redirect to /play')
+      nav('/play')
+    } else {
+      console.log('[Auth] pin too short')
+    }
+  }
+
+  return (
+    <div className="max-w-sm mx-auto">
+      <h2 className="text-2xl font-semibold mb-2">Доступ</h2>
+      <p className="text-sm text-zinc-400 mb-4">
+        Встановіть PIN (мінімум 4 символи), щоб захистити ваш простір.
+      </p>
+      <form onSubmit={submit} className="grid gap-3">
+        <input
+          value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          type="password"
+          placeholder="Введіть PIN"
+          className="px-3 py-2 rounded-xl bg-zinc-800 border border-white/10"
+        />
+        <button className="px-4 py-2 rounded-xl bg-flame-600 hover:bg-flame-500">Увійти</button>
+      </form>
+      <button
+        onClick={() => {
+          console.log('[Auth] reset pin/logout')
+          s.logout()
+          setPin('')
+        }}
+        className="mt-3 text-sm text-zinc-400 hover:text-white"
+      >
+        Скинути PIN
+      </button>
+    </div>
+  )
+}
+
+export default function App() {
+  console.log('[App] render')
+  return (
+    <Shell>
+      <Suspense>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/play" element={<Play />} />
+        </Routes>
+      </Suspense>
+    </Shell>
+  )
+}
