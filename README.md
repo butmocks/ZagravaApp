@@ -16,6 +16,7 @@ npm run dev:host
 - `npm run build` – збірка продакшн-версії.
 - `npm run preview` – перегляд зібраного бандлу.
 - `npm run lint` – ESLint (React + Vite правила).
+- `npm run db:build` – оновити `public/zagrava_db_v1.json` з `db.json` та розпакувати `img.zip`.
 
 > Dev‑сервер працює на `0.0.0.0:4173` (можна змінити через `ZAGRAVA_PORT` або флаг `--port`).
 

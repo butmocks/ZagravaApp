@@ -2,14 +2,8 @@ import { create } from 'zustand'
 
 console.log('[store] Zustand store created')
 
-export const LEVEL_COLOR_MAP = {
-  white: ['easy'],
-  yellow: ['medium'],
-  pink: ['hard'],
-  red: ['extreme'],
-}
-
-const DEFAULT_COLOR = 'white'
+export const LEVEL_COLORS = ['white', 'yellow', 'pink', 'red']
+const DEFAULT_COLOR = LEVEL_COLORS[0]
 
 export const useZStore = create((set) => ({
   lang: 'ua',
@@ -18,7 +12,7 @@ export const useZStore = create((set) => ({
   pair: { maleName: '', femaleName: '' },
   selectedLevelColor: DEFAULT_COLOR,
   filters: {
-    levels: new Set(LEVEL_COLOR_MAP[DEFAULT_COLOR]),
+    levels: new Set([DEFAULT_COLOR]),
     categories: new Set(['action', 'question', 'game']),
     moods: new Set(['romantic', 'playful', 'passionate', 'deep']),
     consentOnly: false,
@@ -28,6 +22,9 @@ export const useZStore = create((set) => ({
       console.log('[store] toggleLevel', lv)
       const next = new Set(s.filters.levels)
       next.has(lv) ? next.delete(lv) : next.add(lv)
+      if (next.size === 0) {
+        next.add(DEFAULT_COLOR)
+      }
       return { filters: { ...s.filters, levels: next } }
     }),
   toggleCategory: (c) =>
@@ -60,10 +57,9 @@ export const useZStore = create((set) => ({
   setLevelColor: (color) =>
     set((s) => {
       console.log('[store] setLevelColor', color)
-      const mapped = LEVEL_COLOR_MAP[color] || s.filters.levels
       return {
         selectedLevelColor: color,
-        filters: { ...s.filters, levels: new Set(mapped) },
+        filters: { ...s.filters, levels: new Set([color]) },
       }
     }),
   login: (pin) =>
