@@ -7,6 +7,8 @@
 ```bash
 npm install
 npm run dev
+# або для доступу з локальної мережі / VM
+npm run dev:host
 ```
 
 Додаткові скрипти:
@@ -14,6 +16,8 @@ npm run dev
 - `npm run build` – збірка продакшн-версії.
 - `npm run preview` – перегляд зібраного бандлу.
 - `npm run lint` – ESLint (React + Vite правила).
+
+> Dev‑сервер працює на `0.0.0.0:4173` (можна змінити через `ZAGRAVA_PORT` або флаг `--port`).
 
 ## Екрани (MVP потік)
 
