@@ -2,9 +2,10 @@ import { Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import './i18n'
-import { LEVEL_COLOR_MAP, useZStore } from './store'
+import { useZStore } from './store'
 import { loadDb } from './lib/loadDb'
 import { romanticFacts } from './data/facts'
+import RadioPlayer from './components/RadioPlayer'
 
 const FLOW_LINKS = [
   { to: '/', label: 'Старт' },
@@ -137,6 +138,9 @@ const MODE_VARIANTS = [
 ]
 
 const CORE_PRINCIPLE = 'Гра створена для насолоди. Ніякого примусу, ніякого тиску. Тільки добровільність та задоволення.'
+
+const MALE_WORDS = ['хлопець', 'хлопця', 'хлопцю', 'чоловік', 'парень', 'парня', 'парню', 'партнер', 'джентльмен', 'кавалер']
+const FEMALE_WORDS = ['дівчина', 'дівчину', 'дівчиною', 'дівчині', 'панночка', 'жінка', 'леді', 'партнерка', 'пані']
 
 function Shell({ children }) {
   const { lang } = useZStore()
@@ -295,32 +299,38 @@ function NamesScreen() {
   )
 }
 
-const LEVEL_CARDS = [
+const LEVEL_CARD_META = [
   {
     id: 'white',
     title: 'Білий жар',
     tagline: 'ніжність та стартові відвертості',
     desc: 'Для розігріву, легкі дотики, компліменти та фантазії без тиску.',
+    range: 'Без таймера, лише відчуття.',
   },
   {
     id: 'yellow',
     title: 'Жовте сяйво',
     tagline: 'флірт і сміливіші сценарії',
     desc: 'Більше тілесності, грайливих завдань і розкриття вподобань.',
+    range: '2–4 хвилини на завдання.',
   },
   {
     id: 'pink',
     title: 'Рожева хвиля',
     tagline: 'пристрасть + експерименти',
     desc: 'Фантазії, рольові ігри, сценарії зі сміливими запитаннями.',
+    range: '4–6 хвилин на завдання.',
   },
   {
     id: 'red',
     title: 'Червоний жар',
     tagline: 'максимальна відвертість',
     desc: 'Глибоке дослідження меж, складні виклики, повна довіра.',
+    range: '6–10 хвилин. Грайте за згодою.',
   },
 ]
+
+const LEVEL_META_MAP = Object.fromEntries(LEVEL_CARD_META.map((meta) => [meta.id, meta]))
 
 function LevelsScreen() {
   const navigate = useNavigate()
@@ -341,7 +351,7 @@ function LevelsScreen() {
         <p className="text-zinc-400">База вже містить білий рівень. Наступні кольори готуємо — можете планувати їх наперед.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        {LEVEL_CARDS.map((card) => (
+        {LEVEL_CARD_META.map((card) => (
           <button
             key={card.id}
             type="button"
@@ -356,8 +366,8 @@ function LevelsScreen() {
                 <p className="text-xs uppercase tracking-widest text-zinc-500">{card.tagline}</p>
                 <h3 className="text-2xl font-semibold">{card.title}</h3>
               </div>
-              <span className="text-xs uppercase px-3 py-1 rounded-full border border-white/10">
-                {LEVEL_COLOR_MAP[card.id]?.join(', ') || 'coming soon'}
+              <span className="text-xs uppercase px-3 py-1 rounded-full border border-white/10 text-zinc-300">
+                {card.range}
               </span>
             </div>
             <p className="mt-3 text-zinc-300">{card.desc}</p>
@@ -514,6 +524,23 @@ function Settings() {
         />
       </Row>
 
+      <div>
+        <p className="text-sm text-zinc-400 mb-2">Рівні</p>
+        <div className="grid grid-cols-2 gap-2">
+          {LEVEL_CARD_META.map((card) => (
+            <button
+              key={card.id}
+              onClick={() => s.toggleLevel(card.id)}
+              className={`px-3 py-2 rounded-xl border ${
+                s.filters.levels.has(card.id) ? 'bg-flame-600 border-flame-500' : 'bg-zinc-900 border-white/10'
+              }`}
+            >
+              {card.title}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-3 gap-2">
         {['action', 'question', 'game'].map((ct) => (
           <button
@@ -570,22 +597,37 @@ function Settings() {
 function Card({ card, onNext, pair }) {
   const title = card.title_ua
   const desc = injectNames(card.description_ua, pair)
+  const levelMeta = LEVEL_META_MAP[card.level]
   console.log('[Card] render', card.id)
 
   return (
     <div className="rounded-3xl border border-white/10 bg-zinc-900/60 p-6 shadow-xl">
       <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-zinc-400">
         <span className="px-2 py-1 rounded-full bg-black/40 border border-white/10">{card.category}</span>
-        <span className="px-2 py-1 rounded-full bg-black/40 border border-white/10">{card.level}</span>
+        <span className="px-2 py-1 rounded-full bg-black/40 border border-white/10">
+          {levelMeta?.title || card.level}
+        </span>
         <span className="px-2 py-1 rounded-full bg-black/40 border border-white/10">{card.mood}</span>
       </div>
       <h3 className="text-2xl font-bold mt-3 text-flame-300">{title}</h3>
       {card.consent_required && (
         <p className="mt-2 text-sm text-rose-300">⚠️ Памʼятайте: дія виконується лише за взаємної згоди.</p>
       )}
-      {card.img && (
-        <div className="mt-4 rounded-2xl overflow-hidden border border-white/10">
-          <img src={card.img} alt={title} className="w-full h-64 object-cover" />
+      {typeof card.time_limit_minutes === 'number' && (
+        <p className="mt-2 text-sm text-amber-200 flex items-center gap-2">
+          <span role="img" aria-label="таймер">
+            ⏱
+          </span>
+          {card.time_limit_minutes} хвилин на виконання
+        </p>
+      )}
+      {card.images?.length > 0 && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {card.images.map((src, idx) => (
+            <div key={`${src}-${idx}`} className="rounded-2xl overflow-hidden border border-white/10 bg-black/30">
+              <img src={src} alt={`${title} ілюстрація ${idx + 1}`} className="w-full h-48 object-cover" loading="lazy" />
+            </div>
+          ))}
         </div>
       )}
       <p className="mt-4 text-lg leading-relaxed text-zinc-200 whitespace-pre-line">{desc}</p>
@@ -598,8 +640,8 @@ function Card({ card, onNext, pair }) {
           ))}
         </div>
       )}
-      <div className="mt-6 flex justify-between items-center">
-        <div className="text-sm text-zinc-500">
+      <div className="mt-6 flex justify-between items-center flex-wrap gap-2 text-sm text-zinc-500">
+        <div>
           Пара: {pair.maleName || 'він'} & {pair.femaleName || 'вона'}
         </div>
         <button
@@ -692,6 +734,7 @@ function Play() {
           {i + 1}/{cards.length}
         </div>
       </div>
+      <RadioPlayer />
       <Card
         card={card}
         pair={pair}
@@ -764,11 +807,31 @@ function injectNames(text, pair) {
   if (!text) return ''
   const male = pair.maleName || 'партнер'
   const female = pair.femaleName || 'панночка'
-  return text
+
+  let result = text
     .replaceAll('{boy}', male)
     .replaceAll('{Boy}', male)
     .replaceAll('{girl}', female)
     .replaceAll('{Girl}', female)
+
+  result = replaceWordGroup(result, MALE_WORDS, male)
+  result = replaceWordGroup(result, FEMALE_WORDS, female)
+  return result
+}
+
+function replaceWordGroup(text, words, replacement) {
+  if (!replacement) return text
+  const pattern = new RegExp(`\\b(${words.join('|')})\\b`, 'gi')
+  return text.replace(pattern, (match) => preserveNameCase(match, replacement))
+}
+
+function preserveNameCase(sample, name) {
+  if (!name) return sample
+  if (sample === sample.toUpperCase()) return name.toUpperCase()
+  if (sample[0] === sample[0].toUpperCase()) {
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  }
+  return name
 }
 
 function pickRandomFact() {
