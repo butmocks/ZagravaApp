@@ -2,12 +2,23 @@ import { create } from 'zustand'
 
 console.log('[store] Zustand store created')
 
+export const LEVEL_COLOR_MAP = {
+  white: ['easy'],
+  yellow: ['medium'],
+  pink: ['hard'],
+  red: ['extreme'],
+}
+
+const DEFAULT_COLOR = 'white'
+
 export const useZStore = create((set) => ({
   lang: 'ua',
   theme: 'dark',
   auth: { isAuthed: false, method: 'pin' },
+  pair: { maleName: '', femaleName: '' },
+  selectedLevelColor: DEFAULT_COLOR,
   filters: {
-    levels: new Set(['easy', 'medium', 'hard', 'extreme']),
+    levels: new Set(LEVEL_COLOR_MAP[DEFAULT_COLOR]),
     categories: new Set(['action', 'question', 'game']),
     moods: new Set(['romantic', 'playful', 'passionate', 'deep']),
     consentOnly: false,
@@ -42,6 +53,19 @@ export const useZStore = create((set) => ({
     console.log('[store] setLang', lang)
     set({ lang })
   },
+  setPairNames: ({ maleName, femaleName }) => {
+    console.log('[store] setPairNames', maleName, femaleName)
+    set({ pair: { maleName, femaleName } })
+  },
+  setLevelColor: (color) =>
+    set((s) => {
+      console.log('[store] setLevelColor', color)
+      const mapped = LEVEL_COLOR_MAP[color] || s.filters.levels
+      return {
+        selectedLevelColor: color,
+        filters: { ...s.filters, levels: new Set(mapped) },
+      }
+    }),
   login: (pin) =>
     set(() => {
       console.log('[store] login attempt', pin)
